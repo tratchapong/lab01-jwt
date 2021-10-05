@@ -2,21 +2,45 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const {User} = require('../models')
 
+exports.authenticate = async (req,res,next) => {
+  try {
+    const { authorization } = req.headers
+    if(!authorization || !authorization.startsWith('Bearer')) 
+      return res.status(401).json('UnAuthorized')
+    const token = authorization.split(" ")[1]
+    if(!token)
+      return res.status(401).json('UnAuthorized')
+    const decoded = jwt.verify(token, "SECRET_KEY");
+    const user = await User.findOne({where: {id: decoded.id}})
+    if(!user)
+      return res.status(401).json('UnAuthorized')
+    req.user = user
+    next()
+  } catch (error) {
+    next(error)
+  }
+}
+
 exports.login = async (req, res, next ) => {
-  const { username, password } = req.body
-  const user = await User.findOne({where: {username}})
-  if(!user) 
-    res.status(400).json({msg: "Invalid Username or Password"})
-  let pwOK = await bcrypt.compare(password, user.password)
-  if(!pwOK)
-    res.status(400).json({msg: "Invalid Username or Password"})
-  // login ok then make token
-  const payload = { id: user.id, username: user.username }
-  const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: '7d' })
-  res.json({
-    msg: "Login Successful",
-    token
-  })
+  try {
+    const { username, password } = req.body
+    const user = await User.findOne({where: {username}})
+    if(!user) 
+      res.status(400).json({msg: "Invalid Username or Password"})
+    let pwOK = await bcrypt.compare(password, user.password)
+    if(!pwOK)
+      res.status(400).json({msg: "Invalid Username or Password"})
+    // login ok then make token
+    const payload = { id: user.id, username: user.username }
+    // const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: '7d' })
+    const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: 30 })
+    res.json({
+      msg: "Login Successful",
+      token
+    })
+  } catch (error) {
+    next(error)
+  }
 }
 
 exports.register = async (req,res,next) => {
