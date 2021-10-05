@@ -2,6 +2,24 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const {User} = require('../models')
 
+exports.checkToken = async (req, res, next) => {
+try {
+  const { authorization } = req.headers
+  if(!authorization || !authorization.startsWith('Bearer'))
+    return res.json(false)
+  const token = authorization.split(" ")[1]
+  if(!token)
+    return res.json(false)
+  const decoded = jwt.verify(token, "SECRET_KEY")
+  const user = await User.findByPk(decoded.id)
+  if(!user) 
+    return res.json(false)
+  return res.json(true)
+} catch (error) {
+  next(error)
+}
+}
+
 exports.authenticate = async (req,res,next) => {
   try {
     const { authorization } = req.headers
@@ -11,10 +29,12 @@ exports.authenticate = async (req,res,next) => {
     if(!token)
       return res.status(401).json('UnAuthorized')
     const decoded = jwt.verify(token, "SECRET_KEY");
-    const user = await User.findOne({where: {id: decoded.id}})
+    const user = await User.findByPk(decoded.id)
+    // const user = await User.findOne({where: {id: decoded.id}})
     if(!user)
       return res.status(401).json('UnAuthorized')
-    req.user = user
+    let {id, username} = user
+    req.user = {id, username}
     next()
   } catch (error) {
     next(error)
@@ -33,7 +53,7 @@ exports.login = async (req, res, next ) => {
     // login ok then make token
     const payload = { id: user.id, username: user.username }
     // const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: '7d' })
-    const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: 30 })
+    const token = jwt.sign(payload, "SECRET_KEY", { expiresIn: '7d' })
     res.json({
       msg: "Login Successful",
       token
