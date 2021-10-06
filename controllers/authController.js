@@ -33,8 +33,8 @@ exports.authenticate = async (req,res,next) => {
     // const user = await User.findOne({where: {id: decoded.id}})
     if(!user)
       return res.status(401).json('UnAuthorized')
-    let {id, username} = user
-    req.user = {id, username}
+    let {id, username, email} = user
+    req.user = {id, username, email}
     next()
   } catch (error) {
     next(error)
