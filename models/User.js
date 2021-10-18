@@ -18,9 +18,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     }
   },{
-    underscored: true,
+    // underscored: true,
     timestamps: false,
   })
-
+  User.associate = models => {
+    User.hasMany(models.Todo)
+  }
   return User
 }
